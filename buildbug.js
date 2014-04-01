@@ -48,7 +48,7 @@ buildProperties({
         packageJson: {
             name: "bugflow",
             version: version,
-            description: "Declarative async flow control for object oriented JavaScript provided by the bugflow library",
+            description: "Declarative async flow control for object oriented JavaScript provided by the bugcore library",
             main: "./scripts/bugflow-node-module.js",
             dependencies: dependencies,
             author: "Brian Neisler <brian@airbug.com>",
