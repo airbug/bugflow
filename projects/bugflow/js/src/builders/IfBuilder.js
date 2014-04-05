@@ -124,7 +124,7 @@ var IfBuilder = Class.extend(FlowBuilder, {
         ]);
         flowArgs    = args.flowArgs;
         callback    = args.callback;
-        var flow    = this.getFlowClass().create(this.getFlowConstructorArgs());
+        var flow    = this.getFlowClass().newInstance(this.getFlowConstructorArgs());
         flow.addAllElseIf(this.elseIfList);
         flow.setElse(this.elseFlow);
         flow.execute(flowArgs, callback);

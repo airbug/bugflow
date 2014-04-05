@@ -92,7 +92,7 @@ var FlowBuilder = Class.extend(Obj, {
         ]);
         flowArgs    = args.flowArgs;
         callback    = args.callback;
-        var flow    = this.flowClass.create(this.flowConstructorArgs);
+        var flow    = this.flowClass.newInstance(this.flowConstructorArgs);
         flow.execute(flowArgs, callback);
     }
 });
