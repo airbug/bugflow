@@ -9,65 +9,76 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class = bugpack.require('Class');
-var Flow =  bugpack.require('bugflow.Flow');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-//NOTE BRN: An instance of this class is designed to be used only once.
-
-var Iteration = Class.extend(Flow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
     //-------------------------------------------------------------------------------
 
-    _constructor: function(iteratorMethod) {
+    var Class       = bugpack.require('Class');
+    var Flow        = bugpack.require('bugflow.Flow');
 
-        this._super();
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
+    //-------------------------------------------------------------------------------
+
+    //NOTE BRN: An instance of this class is designed to be used only once.
+
+    /**
+     * @class
+     * @extends {Flow}
+     */
+    var Iteration = Class.extend(Flow, {
+
+        _name: "bugflow.Iteration",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {function(Flow, *)}
+         * @constructs
+         * @param {function(Flow, *)} iteratorMethod
          */
-        this.iteratorMethod = iteratorMethod;
-    },
+        _constructor: function(iteratorMethod) {
+
+            this._super();
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            /**
+             * @private
+             * @type {function(Flow, *)}
+             */
+            this.iteratorMethod = iteratorMethod;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Flow Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {Array<*>} args
+         */
+        executeFlow: function(args) {
+            this._super(args);
+            this.iteratorMethod.apply(null, ([this]).concat(args));
+        }
+    });
 
 
     //-------------------------------------------------------------------------------
-    // Flow Extensions
+    // Export
     //-------------------------------------------------------------------------------
 
-    /**
-     * @param {Array<*>} args
-     */
-    executeFlow: function(args) {
-        this._super(args);
-        this.iteratorMethod.apply(null, ([this]).concat(args));
-    }
+    bugpack.export('bugflow.Iteration', Iteration);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.Iteration', Iteration);

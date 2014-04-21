@@ -10,193 +10,201 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack         = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class           = bugpack.require('Class');
-var List            = bugpack.require('List');
-var Flow            = bugpack.require('bugflow.Flow');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-/**
- * @class
- * @extends {Flow}
- */
-var If = Class.extend(Flow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
     //-------------------------------------------------------------------------------
 
-    _constructor: function(ifMethod, ifFlow) {
+    var Class           = bugpack.require('Class');
+    var List            = bugpack.require('List');
+    var Flow            = bugpack.require('bugflow.Flow');
 
-        this._super();
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @class
+     * @extends {Flow}
+     */
+    var If = Class.extend(Flow, {
+
+        _name: "bugflow.If",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {Flow}
+         * @constructs
+         * @param {function(Flow)} ifMethod
+         * @param {Flow} ifFlow
          */
-        this.elseFlow = null;
+        _constructor: function(ifMethod, ifFlow) {
+
+            this._super();
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            /**
+             * @private
+             * @type {Flow}
+             */
+            this.elseFlow = null;
+
+            /**
+             * @private
+             * @type {number}
+             */
+            this.elseIfIndex = -1;
+
+            /**
+             * @private
+             * @type {List<If>}
+             */
+            this.elseIfList = new List();
+
+            /**
+             * @private
+             * @type {function(Flow)}
+             */
+            this.ifMethod = ifMethod;
+
+            /**
+             * @private
+             * @type {Flow}
+             */
+            this.ifFlow = ifFlow;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Getters and Setters
+        //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {number}
+         * @param {(Array.<If> | ICollection.<If>)} elseIfFlows
          */
-        this.elseIfIndex = -1;
+        addAllElseIf: function(elseIfFlows) {
+            if (this.elseFlow) {
+                throw new Error("IfFlow already has an ElseFlow");
+            }
+            this.elseIfList.addAll(elseIfFlows);
+        },
 
         /**
-         * @private
-         * @type {List<If>}
+         * @param {If} elseIfFlow
          */
-        this.elseIfList = new List();
+        addElseIf: function(elseIfFlow) {
+            if (this.elseFlow) {
+                throw new Error("IfFlow already has an ElseFlow");
+            }
+            this.elseIfList.add(elseIfFlow);
+        },
 
         /**
-         * @private
-         * @type {function(Flow)}
+         * @param {Flow} elseFlow
          */
-        this.ifMethod = ifMethod;
+        setElse: function(elseFlow) {
+            if (this.elseFlow) {
+                throw new Error("IfFlow already has an ElseFlow");
+            }
+            this.elseFlow = elseFlow;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Flow Methods
+        //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {Flow}
+         * @param {Array<*>} args
          */
-        this.ifFlow = ifFlow;
-    },
+        executeFlow: function(args) {
+            this._super(args);
+            this.execArgs = args;
+            try {
+                this.ifMethod.apply(null, ([this]).concat(args));
+            } catch(throwable) {
+                this.errorFlow(throwable);
+            }
+        },
 
 
-    //-------------------------------------------------------------------------------
-    // Getters and Setters
-    //-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @param {(Array.<If> | ICollection.<If>)} elseIfFlows
-     */
-    addAllElseIf: function(elseIfFlows) {
-        if (this.elseFlow) {
-            throw new Error("IfFlow already has an ElseFlow");
-        }
-        this.elseIfList.addAll(elseIfFlows);
-    },
-
-    /**
-     * @param {If} elseIfFlow
-     */
-    addElseIf: function(elseIfFlow) {
-        if (this.elseFlow) {
-            throw new Error("IfFlow already has an ElseFlow");
-        }
-        this.elseIfList.add(elseIfFlow);
-    },
-
-    /**
-     * @param {Flow} elseFlow
-     */
-    setElse: function(elseFlow) {
-        if (this.elseFlow) {
-            throw new Error("IfFlow already has an ElseFlow");
-        }
-        this.elseFlow = elseFlow;
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Flow Extensions
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @param {Array<*>} args
-     */
-    executeFlow: function(args) {
-        this._super(args);
-        this.execArgs = args;
-        try {
-            this.ifMethod.apply(null, ([this]).concat(args));
-        } catch(throwable) {
-            this.errorFlow(throwable);
-        }
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Public Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @param {boolean} bool
-     */
-    assert: function(bool) {
-        var _this = this;
-        if (bool) {
-            this.ifFlow.execute(this.execArgs, function(throwable) {
-                _this.complete(throwable, bool);
-            });
-        } else {
-            this.nextElseFlow();
-        }
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Private Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @private
-     * @param {Error} error
-     * @param {boolean} result
-     */
-    elseIfCallback: function(error, result) {
-        if (!error) {
-            if (result) {
-                this.complete(null, true);
+        /**
+         * @param {boolean} bool
+         */
+        assert: function(bool) {
+            var _this = this;
+            if (bool) {
+                this.ifFlow.execute(this.execArgs, function(throwable) {
+                    _this.complete(throwable, bool);
+                });
             } else {
                 this.nextElseFlow();
             }
-        } else {
-            this.error(error);
-        }
-    },
+        },
 
-    /**
-     * @private
-     */
-    nextElseFlow: function() {
-        var _this = this;
-        if (this.elseIfList.getCount() > 0 && this.elseIfIndex < this.elseIfList.getCount()) {
-            this.elseIfIndex++;
-            var elseIfFlow = this.elseIfList.getAt(this.elseIfIndex);
-            elseIfFlow.execute(this.execArgs, function(error, result) {
-                _this.elseIfCallback(error, result);
-            });
-        } else if (this.elseFlow) {
-            this.elseFlow.execute(this.execArgs, function(error) {
-                _this.complete(error, false);
-            });
-        } else {
-            this.complete(null, false);
+
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @param {Error} error
+         * @param {boolean} result
+         */
+        elseIfCallback: function(error, result) {
+            if (!error) {
+                if (result) {
+                    this.complete(null, true);
+                } else {
+                    this.nextElseFlow();
+                }
+            } else {
+                this.error(error);
+            }
+        },
+
+        /**
+         * @private
+         */
+        nextElseFlow: function() {
+            var _this = this;
+            if (this.elseIfList.getCount() > 0 && this.elseIfIndex < this.elseIfList.getCount()) {
+                this.elseIfIndex++;
+                var elseIfFlow = this.elseIfList.getAt(this.elseIfIndex);
+                elseIfFlow.execute(this.execArgs, function(error, result) {
+                    _this.elseIfCallback(error, result);
+                });
+            } else if (this.elseFlow) {
+                this.elseFlow.execute(this.execArgs, function(error) {
+                    _this.complete(error, false);
+                });
+            } else {
+                this.complete(null, false);
+            }
         }
-    }
+    });
+
+
+    //-------------------------------------------------------------------------------
+    // Export
+    //-------------------------------------------------------------------------------
+
+    bugpack.export('bugflow.If', If);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.If', If);

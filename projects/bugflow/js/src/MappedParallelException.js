@@ -11,135 +11,153 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack             = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class               = bugpack.require('Class');
-var Map                 = bugpack.require('Map');
-var StackTraceUtil      = bugpack.require('StackTraceUtil');
-var ParallelException   = bugpack.require('bugflow.ParallelException');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var MappedParallelException = Class.extend(ParallelException, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
+    //-------------------------------------------------------------------------------
+
+    var Class               = bugpack.require('Class');
+    var Map                 = bugpack.require('Map');
+    var StackTraceUtil      = bugpack.require('StackTraceUtil');
+    var ParallelException   = bugpack.require('bugflow.ParallelException');
+
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
     //-------------------------------------------------------------------------------
 
     /**
-     *
+     * @class
+     * @extends {ParallelException}
      */
-    _constructor: function(type, data, message) {
+    var MappedParallelException = Class.extend(ParallelException, {
+
+        _name: "bugflow.MappedParallelException",
+
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {Map.<*, Throwable>}
+         * @constructs
+         * @param {string} type
+         * @param {*} data
+         * @param {string} message
          */
-        this.causeMap   = new Map();
+        _constructor: function(type, data, message) {
 
-        type = type ? type : "MappedParallelException";
-        this._super(type, data, message);
-    },
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
 
+            /**
+             * @private
+             * @type {Map.<*, Throwable>}
+             */
+            this.causeMap   = new Map();
 
-    //-------------------------------------------------------------------------------
-    // Throwable  Overrides
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @return {Array<Throwable>}
-     */
-    getCauses: function() {
-        return this.causeMap.getValueArray();
-    },
-
-    /**
-     * @return {Map.<*, Throwable>}
-     */
-    getCauseMap: function() {
-        return this.causeMap;
-    },
+            type = type ? type : "MappedParallelException";
+            this._super(type, data, message);
+        },
 
 
-    //-------------------------------------------------------------------------------
-    // IObjectable Extension
-    //-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // Throwable Methods
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @return {Object}
-     */
-    toObject: function() {
-        var data = this._super();
-        data.causeMap   = this.causeMap;
-        return data;
-    },
+        /**
+         * @return {Array<Throwable>}
+         */
+        getCauses: function() {
+            return this.causeMap.getValueArray();
+        },
 
-    toString: function() {
-        var data = this._super();
-        data = data + "\n causeMap:" + this.causeMap.toString();
-        return data
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Public Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @param {*} key
-     * @param {Throwable} throwable
-     */
-    putCause: function(key, throwable) {
-        this.causeMap.put(key, throwable);
-        this.buildStackTrace();
-    },
+        /**
+         * @return {Map.<*, Throwable>}
+         */
+        getCauseMap: function() {
+            return this.causeMap;
+        },
 
 
-    //-------------------------------------------------------------------------------
-    // Private Methods
-    //-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // IObjectable Methods
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @override
-     * @private
-     */
-    buildStackTrace: function() {
-        var _this = this;
-        if (!this.primaryStack) {
-            this.primaryStack = this.generateStackTrace();
+        /**
+         * @return {Object}
+         */
+        toObject: function() {
+            var data = this._super();
+            data.causeMap   = this.causeMap;
+            return data;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Object Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @return {string}
+         */
+        toString: function() {
+            var data = this._super();
+            data = data + "\n causeMap:" + this.causeMap.toString();
+            return data
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {*} key
+         * @param {Throwable} throwable
+         */
+        putCause: function(key, throwable) {
+            this.causeMap.put(key, throwable);
+            this.buildStackTrace();
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @override
+         * @private
+         */
+        buildStackTrace: function() {
+            var _this = this;
+            if (!this.primaryStack) {
+                this.primaryStack = this.generateStackTrace();
+            }
+            var stack = this.primaryStack;
+            stack += "\n\n";
+            stack += this.type + " was caused by " + this.causeMap.getCount() + " exceptions:\n";
+            var count = 0;
+            this.causeMap.forEach(function(cause, key) {
+                count++;
+                stack += _this.type + " cause mapped to '" + key + "':\n";
+                stack += cause.message + "\n";
+                stack += cause.stack;
+            });
+            this.stack = stack;
         }
-        var stack = this.primaryStack;
-        stack += "\n\n";
-        stack += this.type + " was caused by " + this.causeMap.getCount() + " exceptions:\n";
-        var count = 0;
-        this.causeMap.forEach(function(cause, key) {
-            count++;
-            stack += _this.type + " cause mapped to '" + key + "':\n";
-            stack += cause.message + "\n";
-            stack += cause.stack;
-        });
-        this.stack = stack;
-    }
+    });
+
+
+    //-------------------------------------------------------------------------------
+    // Exports
+    //-------------------------------------------------------------------------------
+
+    bugpack.export('bugflow.MappedParallelException', MappedParallelException);
 });
-
-
-//-------------------------------------------------------------------------------
-// Exports
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.MappedParallelException', MappedParallelException);

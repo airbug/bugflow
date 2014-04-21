@@ -12,144 +12,151 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack                     = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class                       = bugpack.require('Class');
-var IIterable                   = bugpack.require('IIterable');
-var IteratorFlow                = bugpack.require('bugflow.IteratorFlow');
-var MappedParallelException     = bugpack.require('bugflow.MappedParallelException');
-var BugTrace                    = bugpack.require('bugtrace.BugTrace');
-
-
-//-------------------------------------------------------------------------------
-// Simplify References
-//-------------------------------------------------------------------------------
-
-var $error = BugTrace.$error;
-var $trace = BugTrace.$trace;
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var IterableParallel = Class.extend(IteratorFlow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
+    //-------------------------------------------------------------------------------
+
+    var Class                       = bugpack.require('Class');
+    var IIterable                   = bugpack.require('IIterable');
+    var IteratorFlow                = bugpack.require('bugflow.IteratorFlow');
+    var MappedParallelException     = bugpack.require('bugflow.MappedParallelException');
+    var BugTrace                    = bugpack.require('bugtrace.BugTrace');
+
+
+    //-------------------------------------------------------------------------------
+    // Simplify References
+    //-------------------------------------------------------------------------------
+
+    var $error                      = BugTrace.$error;
+    var $trace                      = BugTrace.$trace;
+
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
     //-------------------------------------------------------------------------------
 
     /**
-     * @param {IIterable} data
-     * @param {function(Flow, *)} iteratorMethod
-     * @private
+     * @class
+     * @extends {IteratorFlow}
      */
-    _constructor: function(data, iteratorMethod) {
+    var IterableParallel = Class.extend(IteratorFlow, {
 
-        this._super(data, iteratorMethod);
+        _name: "bugflow.IterableParallel",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
-        if (!Class.doesImplement(data, IIterable)) {
-            throw new Error("IterableParallel only supports IIterable instances.");
-        }
-
         /**
-         * @private
-         * @type {IIterable}
+         * @constructs
+         * @param {IIterable} data
+         * @param {function(Flow, *)} iteratorMethod
          */
-        this.iterator = data.iterator();
+        _constructor: function(data, iteratorMethod) {
 
-        /**
-         * @private
-         * @type {number}
-         */
-        this.numberIterationsComplete = 0;
-
-        /**
-         * @private
-         * @type {number}
-         */
-        this.totalIterationCount = 0;
-    },
+            this._super(data, iteratorMethod);
 
 
-    //-------------------------------------------------------------------------------
-    // Flow Extensions
-    //-------------------------------------------------------------------------------
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
 
-    /**
-     * @param {Array<*>} args
-     */
-    executeFlow: function(args) {
-        this._super(args);
-        if (this.iterator.hasNext()) {
-            while (this.iterator.hasNext()) {
-                var value = this.iterator.next();
-                this.totalIterationCount++;
-                this.executeIteration([value]);
+            if (!Class.doesImplement(data, IIterable)) {
+                throw new Error("IterableParallel only supports IIterable instances.");
             }
-        } else {
-            this.complete();
-        }
-    },
+
+            /**
+             * @private
+             * @type {IIterable}
+             */
+            this.iterator = data.iterator();
+
+            /**
+             * @private
+             * @type {number}
+             */
+            this.numberIterationsComplete = 0;
+
+            /**
+             * @private
+             * @type {number}
+             */
+            this.totalIterationCount = 0;
+        },
 
 
-    //-------------------------------------------------------------------------------
-    // IteratorFlow Implementation
-    //-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // Flow Methods
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @protected
-     * @param {Array.<*>} args
-     * @param {Throwable} throwable
-     */
-    iterationCallback: function(args, throwable) {
-        this.numberIterationsComplete++;
-        if (throwable) {
-            this.processThrowable(args, throwable);
-        }
-        if (!this.iterator.hasNext() && this.numberIterationsComplete >= this.totalIterationCount) {
-            if (!this.exception) {
-                this.complete();
+        /**
+         * @param {Array<*>} args
+         */
+        executeFlow: function(args) {
+            this._super(args);
+            if (this.iterator.hasNext()) {
+                while (this.iterator.hasNext()) {
+                    var value = this.iterator.next();
+                    this.totalIterationCount++;
+                    this.executeIteration([value]);
+                }
             } else {
-                this.error(this.exception);
+                this.complete();
             }
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // IteratorFlow Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @protected
+         * @param {Array.<*>} args
+         * @param {Throwable} throwable
+         */
+        iterationCallback: function(args, throwable) {
+            this.numberIterationsComplete++;
+            if (throwable) {
+                this.processThrowable(args, throwable);
+            }
+            if (!this.iterator.hasNext() && this.numberIterationsComplete >= this.totalIterationCount) {
+                if (!this.exception) {
+                    this.complete();
+                } else {
+                    this.error(this.exception);
+                }
+            }
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @param {Array.<*>} args
+         * @param {Throwable} throwable
+         */
+        processThrowable: function(args, throwable) {
+            if (!this.exception) {
+                this.exception = new MappedParallelException();
+            }
+            this.exception.putCause(args[0], throwable);
         }
-    },
+    });
 
 
     //-------------------------------------------------------------------------------
-    // Private Methods
+    // Export
     //-------------------------------------------------------------------------------
 
-    /**
-     * @private
-     * @param {Array.<*>} args
-     * @param {Throwable} throwable
-     */
-    processThrowable: function(args, throwable) {
-        if (!this.exception) {
-            this.exception = new MappedParallelException();
-        }
-        this.exception.putCause(args[0], throwable);
-    }
+    bugpack.export('bugflow.IterableParallel', IterableParallel);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.IterableParallel', IterableParallel);

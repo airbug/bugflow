@@ -10,96 +10,108 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack     = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var ArgUtil     = bugpack.require('ArgUtil');
-var Class       = bugpack.require('Class');
-var Obj         = bugpack.require('Obj');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var FlowBuilder = Class.extend(Obj, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
     //-------------------------------------------------------------------------------
 
-    _constructor: function(flowClass, flowConstructorArgs) {
+    var ArgUtil     = bugpack.require('ArgUtil');
+    var Class       = bugpack.require('Class');
+    var Obj         = bugpack.require('Obj');
 
-        this._super();
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @class
+     * @extends {Obj}
+     */
+    var FlowBuilder = Class.extend(Obj, {
+
+        _name: "bugflow.FlowBuilder",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {Class}
+         * @constructs
+         * @param {function(new:Constructor)} flowConstructor
+         * @param {Array.<*>} flowConstructorArgs
          */
-        this.flowClass              = flowClass;
+        _constructor: function(flowConstructor, flowConstructorArgs) {
+
+            this._super();
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            /**
+             * @private
+             * @type {function(new:Constructor)}
+             */
+            this.flowConstructor        = flowConstructor;
+
+            /**
+             * @private
+             * @type {Array.<*>}
+             */
+            this.flowConstructorArgs    = flowConstructorArgs;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Getters and Setters
+        //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {Array.<*>}
+         * @return {Array.<*>}
          */
-        this.flowConstructorArgs    = flowConstructorArgs;
-    },
+        getFlowConstructorArgs: function() {
+            return this.flowConstructorArgs;
+        },
+
+        /**
+         * @return {function(new:Constructor)}
+         */
+        getFlowConstructor: function() {
+            return this.flowConstructor;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {(Array.<*> | function(Throwable=))} flowArgs
+         * @param {function(Throwable=)=} callback
+         */
+        execute: function(flowArgs, callback) {
+            var args = ArgUtil.process(arguments, [
+                {name: "flowArgs", optional: true, type: "array", default: []},
+                {name: "callback", optional: false, type: "function"}
+            ]);
+            flowArgs    = args.flowArgs;
+            callback    = args.callback;
+            var flow    = this.flowConstructor.getClass().newInstance(this.flowConstructorArgs);
+            flow.execute(flowArgs, callback);
+        }
+    });
 
 
     //-------------------------------------------------------------------------------
-    // Getters and Setters
+    // Export
     //-------------------------------------------------------------------------------
 
-    /**
-     * @return {Array.<*>}
-     */
-    getFlowConstructorArgs: function() {
-        return this.flowConstructorArgs;
-    },
-
-    /**
-     * @return {Class}
-     */
-    getFlowClass: function() {
-        return this.flowClass;
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Public Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @param {(Array.<*> | function(Throwable=))} flowArgs
-     * @param {function(Throwable=)=} callback
-     */
-    execute: function(flowArgs, callback) {
-        var args = ArgUtil.process(arguments, [
-            {name: "flowArgs", optional: true, type: "array", default: []},
-            {name: "callback", optional: false, type: "function"}
-        ]);
-        flowArgs    = args.flowArgs;
-        callback    = args.callback;
-        var flow    = this.flowClass.newInstance(this.flowConstructorArgs);
-        flow.execute(flowArgs, callback);
-    }
+    bugpack.export('bugflow.FlowBuilder', FlowBuilder);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.FlowBuilder', FlowBuilder);

@@ -12,126 +12,133 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class           = bugpack.require('Class');
-var IIterable       = bugpack.require('IIterable');
-var Iteration       = bugpack.require('bugflow.Iteration');
-var IteratorFlow    = bugpack.require('bugflow.IteratorFlow');
-var BugTrace        = bugpack.require('bugtrace.BugTrace');
-
-
-//-------------------------------------------------------------------------------
-// Simplify References
-//-------------------------------------------------------------------------------
-
-var $error = BugTrace.$error;
-var $trace = BugTrace.$trace;
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var IterableSeries = Class.extend(IteratorFlow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
+    //-------------------------------------------------------------------------------
+
+    var Class           = bugpack.require('Class');
+    var IIterable       = bugpack.require('IIterable');
+    var Iteration       = bugpack.require('bugflow.Iteration');
+    var IteratorFlow    = bugpack.require('bugflow.IteratorFlow');
+    var BugTrace        = bugpack.require('bugtrace.BugTrace');
+
+
+    //-------------------------------------------------------------------------------
+    // Simplify References
+    //-------------------------------------------------------------------------------
+
+    var $error          = BugTrace.$error;
+    var $trace          = BugTrace.$trace;
+
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
     //-------------------------------------------------------------------------------
 
     /**
-     * @param {IIterable} data
-     * @param {function(Flow, *)} iteratorMethod
-     * @private
+     * @class
+     * @extends {IteratorFlow}
      */
-    _constructor: function(data, iteratorMethod) {
+    var IterableSeries = Class.extend(IteratorFlow, {
 
-        this._super(data, iteratorMethod);
+        _name: "bugflow.IterableSeries",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
-        if (!Class.doesImplement(data, IIterable)) {
-            throw new Error("IterableSeries only supports IIterable instances.");
-        }
+        /**
+         * @constructs
+         * @param {IIterable} data
+         * @param {function(Flow, *)} iteratorMethod
+         */
+        _constructor: function(data, iteratorMethod) {
+
+            this._super(data, iteratorMethod);
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            if (!Class.doesImplement(data, IIterable)) {
+                throw new Error("IterableSeries only supports IIterable instances.");
+            }
+
+            /**
+             * @private
+             * @type {IIterator}
+             */
+            this.iterator = data.iterator();
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Flow Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {Array<*>} args
+         */
+        executeFlow: function(args) {
+            if (!this.data) {
+                this.error("data value must be iterable");
+            }
+            if (this.iterator.hasNext()) {
+                this.next();
+            } else {
+                this.complete();
+            }
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // IteratorFlow Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @protected
+         * @param {Array.<*>} args
+         * @param {Throwable} throwable
+         */
+        iterationCallback: function(args, throwable) {
+            if (throwable) {
+                if (!this.hasErrored()) {
+                    this.error(throwable);
+                }
+            } else {
+                if (!this.iterator.hasNext()) {
+                    this.complete();
+                } else {
+                    this.next();
+                }
+            }
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
 
         /**
          * @private
-         * @type {IIterator}
          */
-        this.iterator = data.iterator();
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Flow Extensions
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @param {Array<*>} args
-     */
-    executeFlow: function(args) {
-        if (!this.data) {
-            this.error("data value must be iterable");
+        next: function() {
+            var nextValue = this.iterator.next();
+            this.executeIteration([nextValue]);
         }
-        if (this.iterator.hasNext()) {
-            this.next();
-        } else {
-            this.complete();
-        }
-    },
+    });
 
 
     //-------------------------------------------------------------------------------
-    // IteratorFlow Implementation
+    // Export
     //-------------------------------------------------------------------------------
 
-    /**
-     * @protected
-     * @param {Array.<*>} args
-     * @param {Throwable} throwable
-     */
-    iterationCallback: function(args, throwable) {
-        if (throwable) {
-            if (!this.hasErrored()) {
-                this.error(throwable);
-            }
-        } else {
-            if (!this.iterator.hasNext()) {
-                this.complete();
-            } else {
-                this.next();
-            }
-        }
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Private Class Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @private
-     */
-    next: function() {
-        var nextValue = this.iterator.next();
-        this.executeIteration([nextValue]);
-    }
+    bugpack.export('bugflow.IterableSeries', IterableSeries);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.IterableSeries', IterableSeries);

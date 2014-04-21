@@ -9,42 +9,53 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class       = bugpack.require('Class');
-var Exception   = bugpack.require('Exception');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var ParallelException = Class.extend(Exception, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
+    //-------------------------------------------------------------------------------
+
+    var Class       = bugpack.require('Class');
+    var Exception   = bugpack.require('Exception');
+
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
     //-------------------------------------------------------------------------------
 
     /**
-     *
+     * @class
+     * @extends {Exception}
      */
-    _constructor: function(type, data, message, causes) {
-        type = type ? type : "ParallelException";
-        this._super(type, data, message, causes);
-    }
+    var ParallelException = Class.extend(Exception, {
+
+        _name: "bugflow.ParallelException",
+
+
+        //-------------------------------------------------------------------------------
+        // Constructor
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @constructs
+         * @param {string} type
+         * @param {*=} data
+         * @param {string=} message
+         * @param {Array.<(Throwable | Error)>=} causes
+         */
+        _constructor: function(type, data, message, causes) {
+            type = type ? type : "ParallelException";
+            this._super(type, data, message, causes);
+        }
+    });
+
+
+    //-------------------------------------------------------------------------------
+    // Exports
+    //-------------------------------------------------------------------------------
+
+    bugpack.export('bugflow.ParallelException', ParallelException);
 });
-
-
-//-------------------------------------------------------------------------------
-// Exports
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.ParallelException', ParallelException);

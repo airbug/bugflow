@@ -10,108 +10,121 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack         = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class           = bugpack.require('Class');
-var Flow            =  bugpack.require('bugflow.Flow');
-var Iteration       = bugpack.require('bugflow.Iteration');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-var IteratorFlow = Class.extend(Flow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
     //-------------------------------------------------------------------------------
 
-    _constructor: function(data, iteratorMethod) {
+    var Class           = bugpack.require('Class');
+    var Flow            =  bugpack.require('bugflow.Flow');
+    var Iteration       = bugpack.require('bugflow.Iteration');
 
-        this._super();
+
+    //-------------------------------------------------------------------------------
+    // Declare Class
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @class
+     * @extends {Flow}
+     */
+    var IteratorFlow = Class.extend(Flow, {
+
+        _name: "bugflow.IteratorFlow",
 
 
         //-------------------------------------------------------------------------------
-        // Private Properties
+        // Constructor
         //-------------------------------------------------------------------------------
 
-        // TODO BRN: Add support for BugJs data objects that implement the IIterate interface
+        /**
+         * @constructs
+         * @param {*} data
+         * @param {function(Flow, *)} iteratorMethod
+         */
+        _constructor: function(data, iteratorMethod) {
+
+            this._super();
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            // TODO BRN: Add support for BugJs data objects that implement the IIterate interface
+
+            /**
+             * @private
+             * @type {*}
+             */
+            this.data               = data;
+
+            /**
+             * @private
+             * @type {function(Flow, *)}
+             */
+            this.iteratorMethod     = iteratorMethod;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Getters and Setters
+        //-------------------------------------------------------------------------------
 
         /**
-         * @private
-         * @type {*}
+         * @return {*}
          */
-        this.data = data;
+        getData: function(args) {
+            return this.data;
+        },
 
         /**
-         * @private
-         * @type {function(Flow, *)}
+         * @return {function(Flow, *)}
          */
-        this.iteratorMethod = iteratorMethod;
-    },
-
-    //-------------------------------------------------------------------------------
-    // Getters and Setters
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @return {*}
-     */
-    getData: function(args) {
-        return this.data;
-    },
-
-    /**
-     * @return {function(Flow, *)}
-     */
-    getIteratorMethod: function() {
-        return this.iteratorMethod;
-    },
+        getIteratorMethod: function() {
+            return this.iteratorMethod;
+        },
 
 
-    //-------------------------------------------------------------------------------
-    // Protected Methods
-    //-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // Protected Methods
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @protected
-     * @param {Array.<*>} args
-     */
-    executeIteration: function(args) {
-        var _this = this;
-        var iteration = new Iteration(this.getIteratorMethod());
-        iteration.execute(args, function(throwable) {
-            _this.iterationCallback(args, throwable);
-        })
-    },
+        /**
+         * @protected
+         * @param {Array.<*>} args
+         */
+        executeIteration: function(args) {
+            var _this = this;
+            var iteration = new Iteration(this.getIteratorMethod());
+            iteration.execute(args, function(throwable) {
+                _this.iterationCallback(args, throwable);
+            })
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Abstract Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @abstract
+         * @param {Array.<*>} args
+         * @param {Throwable} throwable
+         */
+        iterationCallback: function(args, throwable) {
+
+        }
+    });
 
 
     //-------------------------------------------------------------------------------
-    // Abstract Methods
+    // Export
     //-------------------------------------------------------------------------------
 
-    /**
-     * @abstract
-     * @param {Array.<*>} args
-     * @param {Throwable} throwable
-     */
-    iterationCallback: function(args, throwable) {
-
-    }
+    bugpack.export('bugflow.IteratorFlow', IteratorFlow);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.IteratorFlow', IteratorFlow);

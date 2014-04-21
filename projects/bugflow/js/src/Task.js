@@ -9,71 +9,81 @@
 
 
 //-------------------------------------------------------------------------------
-// Common Modules
+// Context
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context();
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var Class = bugpack.require('Class');
-var Flow =  bugpack.require('bugflow.Flow');
-
-
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
-
-//NOTE BRN: An instance of this class is designed to be used only once.
-
-var Task = Class.extend(Flow, {
+require('bugpack').context("*", function(bugpack) {
 
     //-------------------------------------------------------------------------------
-    // Constructor
+    // BugPack
     //-------------------------------------------------------------------------------
 
-    _constructor: function(taskMethod, taskContext) {
-
-        this._super();
-
-
-        //-------------------------------------------------------------------------------
-        // Private Properties
-        //-------------------------------------------------------------------------------
-
-        /**
-         * @private
-         * @type {Object}
-         */
-        this.taskContext = taskContext;
-
-        /**
-         * @private
-         * @type {function(Flow)}
-         */
-        this.taskMethod = taskMethod;
-    },
+    var Class       = bugpack.require('Class');
+    var Flow        = bugpack.require('bugflow.Flow');
 
 
     //-------------------------------------------------------------------------------
-    // Flow Extensions
+    // Declare Class
     //-------------------------------------------------------------------------------
 
     /**
-     * @param {Array<*>} args
+     * @class
+     * @extends {Flow}
      */
-    executeFlow: function(args) {
-        this._super(args);
-        this.taskMethod.apply(this.taskContext, ([this]).concat(args));
-    }
+    var Task = Class.extend(Flow, {
+
+        _name: "bugflow.Task",
+
+
+        //-------------------------------------------------------------------------------
+        // Constructor
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @constructs
+         * @param {function(Flow)}  taskMethod
+         * @param {Object} taskContext
+         */
+        _constructor: function(taskMethod, taskContext) {
+
+            this._super();
+
+
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
+
+            /**
+             * @private
+             * @type {Object}
+             */
+            this.taskContext    = taskContext;
+
+            /**
+             * @private
+             * @type {function(Flow)}
+             */
+            this.taskMethod     = taskMethod;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Flow Extensions
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {Array<*>} args
+         */
+        executeFlow: function(args) {
+            this._super(args);
+            this.taskMethod.apply(this.taskContext, ([this]).concat(args));
+        }
+    });
+
+
+    //-------------------------------------------------------------------------------
+    // Export
+    //-------------------------------------------------------------------------------
+
+    bugpack.export('bugflow.Task', Task);
 });
-
-
-//-------------------------------------------------------------------------------
-// Export
-//-------------------------------------------------------------------------------
-
-bugpack.export('bugflow.Task', Task);
