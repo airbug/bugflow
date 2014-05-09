@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2014 airbug inc. http://airbug.com
+ *
+ * bugflow may be freely distributed under the MIT license.
+ */
+
+
 //-------------------------------------------------------------------------------
 // Annotations
 //-------------------------------------------------------------------------------
@@ -64,6 +71,25 @@ require('bugpack').context("*", function(bugpack) {
              * @type {function(Flow)}
              */
             this.taskMethod     = taskMethod;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Getters and Setters
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @return {Object}
+         */
+        getTaskContext: function() {
+            return this.taskContext;
+        },
+
+        /**
+         * @return {function(Flow)}
+         */
+        getTaskMethod: function() {
+            return this.taskMethod;
         },
 
 
