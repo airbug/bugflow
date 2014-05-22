@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -9,12 +9,12 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugflow.IterableParallel')
+//@Export('bugflow.ForEachSeries')
 
+//@Require('Bug')
 //@Require('Class')
 //@Require('IIterable')
 //@Require('bugflow.IteratorFlow')
-//@Require('bugflow.MappedParallelException')
 //@Require('bugtrace.BugTrace')
 
 
@@ -28,19 +28,19 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Class                       = bugpack.require('Class');
-    var IIterable                   = bugpack.require('IIterable');
-    var IteratorFlow                = bugpack.require('bugflow.IteratorFlow');
-    var MappedParallelException     = bugpack.require('bugflow.MappedParallelException');
-    var BugTrace                    = bugpack.require('bugtrace.BugTrace');
+    var Bug             = bugpack.require('Bug');
+    var Class           = bugpack.require('Class');
+    var IIterable       = bugpack.require('IIterable');
+    var IteratorFlow    = bugpack.require('bugflow.IteratorFlow');
+    var BugTrace        = bugpack.require('bugtrace.BugTrace');
 
 
     //-------------------------------------------------------------------------------
     // Simplify References
     //-------------------------------------------------------------------------------
 
-    var $error                      = BugTrace.$error;
-    var $trace                      = BugTrace.$trace;
+    var $error          = BugTrace.$error;
+    var $trace          = BugTrace.$trace;
 
 
     //-------------------------------------------------------------------------------
@@ -51,9 +51,9 @@ require('bugpack').context("*", function(bugpack) {
      * @class
      * @extends {IteratorFlow}
      */
-    var IterableParallel = Class.extend(IteratorFlow, {
+    var ForEachSeries = Class.extend(IteratorFlow, {
 
-        _name: "bugflow.IterableParallel",
+        _name: "bugflow.ForEachSeries",
 
 
         //-------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {IIterable} data
+         * @param {*} data
          * @param {function(Flow, *)} iteratorMethod
          */
         _constructor: function(data, iteratorMethod) {
@@ -74,27 +74,15 @@ require('bugpack').context("*", function(bugpack) {
             // Private Properties
             //-------------------------------------------------------------------------------
 
-            if (!Class.doesImplement(data, IIterable)) {
-                throw new Error("IterableParallel only supports IIterable instances.");
+            if (Class.doesImplement(data, IIterable)) {
+                throw new Bug("UnsupportedType", {}, "ForEachSeries does not support IIterable instances. Use the IterableSeries instead.");
             }
 
             /**
              * @private
-             * @type {IIterable}
-             */
-            this.iterator = data.iterator();
-
-            /**
-             * @private
              * @type {number}
              */
-            this.numberIterationsComplete = 0;
-
-            /**
-             * @private
-             * @type {number}
-             */
-            this.totalIterationCount = 0;
+            this.iteratorIndex = -1;
         },
 
 
@@ -106,13 +94,14 @@ require('bugpack').context("*", function(bugpack) {
          * @param {Array<*>} args
          */
         executeFlow: function(args) {
-            this._super(args);
-            if (this.iterator.hasNext()) {
-                while (this.iterator.hasNext()) {
-                    var value = this.iterator.next();
-                    this.totalIterationCount++;
-                    this.executeIteration([value]);
-                }
+            if (!this.getData()) {
+                this.error("There is not data. Data value must be iterable");
+                //NOTE SUNG
+                // You may need to wrap your forEachSeries in another task
+                // because the data is defined before the forEachSeries is run
+            }
+            if (this.getData().length > 0) {
+                this.next();
             } else {
                 this.complete();
             }
@@ -129,15 +118,15 @@ require('bugpack').context("*", function(bugpack) {
          * @param {Throwable} throwable
          */
         iterationCallback: function(args, throwable) {
-            this.numberIterationsComplete++;
             if (throwable) {
-                this.processThrowable(args, throwable);
-            }
-            if (!this.iterator.hasNext() && this.numberIterationsComplete >= this.totalIterationCount) {
-                if (!this.exception) {
+                if (!this.hasErrored()) {
+                    this.error(throwable);
+                }
+            } else {
+                if (this.iteratorIndex >= (this.getData().length - 1)) {
                     this.complete();
                 } else {
-                    this.error(this.exception);
+                    this.next();
                 }
             }
         },
@@ -149,14 +138,11 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
-         * @param {Array.<*>} args
-         * @param {Throwable} throwable
          */
-        processThrowable: function(args, throwable) {
-            if (!this.exception) {
-                this.exception = new MappedParallelException();
-            }
-            this.exception.putCause(args[0], throwable);
+        next: function() {
+            this.iteratorIndex++;
+            var nextValue = this.getData()[this.iteratorIndex];
+            this.executeIteration([nextValue, this.iteratorIndex]);
         }
     });
 
@@ -165,5 +151,5 @@ require('bugpack').context("*", function(bugpack) {
     // Export
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugflow.IterableParallel', IterableParallel);
+    bugpack.export('bugflow.ForEachSeries', ForEachSeries);
 });

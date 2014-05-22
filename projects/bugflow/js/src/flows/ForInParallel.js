@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -9,13 +9,12 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugflow.ForEachParallel')
+//@Export('bugflow.ForInParallel')
 
 //@Require('Class')
-//@Require('IIterable')
+//@Require('Obj')
 //@Require('bugflow.IteratorFlow')
 //@Require('bugflow.MappedParallelException')
-//@Require('bugtrace.BugTrace')
 
 
 //-------------------------------------------------------------------------------
@@ -29,18 +28,9 @@ require('bugpack').context("*", function(bugpack) {
     //-------------------------------------------------------------------------------
 
     var Class                       = bugpack.require('Class');
-    var IIterable                   = bugpack.require('IIterable');
+    var Obj                         = bugpack.require('Obj');
     var IteratorFlow                = bugpack.require('bugflow.IteratorFlow');
     var MappedParallelException     = bugpack.require('bugflow.MappedParallelException');
-    var BugTrace                    = bugpack.require('bugtrace.BugTrace');
-
-
-    //-------------------------------------------------------------------------------
-    // Simplify References
-    //-------------------------------------------------------------------------------
-
-    var $error                      = BugTrace.$error;
-    var $trace                      = BugTrace.$trace;
 
 
     //-------------------------------------------------------------------------------
@@ -51,9 +41,9 @@ require('bugpack').context("*", function(bugpack) {
      * @class
      * @extends {IteratorFlow}
      */
-    var ForEachParallel = Class.extend(IteratorFlow, {
+    var ForInParallel = Class.extend(IteratorFlow, {
 
-        _name: "bugflow.ForEachParallel",
+        _name: "bugflow.ForInParallel",
 
 
         //-------------------------------------------------------------------------------
@@ -74,9 +64,7 @@ require('bugpack').context("*", function(bugpack) {
             // Private Properties
             //-------------------------------------------------------------------------------
 
-            if (Class.doesImplement(data, IIterable)) {
-                throw new Error("ForEachParallel does not support IIterable instances. Use the IterableParallel instead.");
-            }
+            // TODO BRN: Add support for BugJs data objects that implement the IIterate interface
 
             /**
              * @private
@@ -86,9 +74,21 @@ require('bugpack').context("*", function(bugpack) {
 
             /**
              * @private
+             * @type {boolean}
+             */
+            this.iterationCompleted         = false;
+
+            /**
+             * @private
              * @type {number}
              */
             this.numberIterationsComplete   = 0;
+
+            /**
+             * @private
+             * @type {number}
+             */
+            this.totalIterationCount        = 0;
         },
 
 
@@ -102,13 +102,12 @@ require('bugpack').context("*", function(bugpack) {
         executeFlow: function(args) {
             this._super(args);
             var _this = this;
-            if (this.getData().length > 0) {
-                this.getData().forEach(function(value, index) {
-                    _this.executeIteration([value, index]);
-                });
-            } else {
-                this.complete();
-            }
+            Obj.forIn(this.getData(), function(key, value) {
+                _this.totalIterationCount++;
+                _this.executeIteration([key, value]);
+            });
+            this.iterationCompleted = true;
+            this.checkIterationComplete();
         },
 
 
@@ -126,7 +125,19 @@ require('bugpack').context("*", function(bugpack) {
             if (throwable) {
                 this.processThrowable(args, throwable);
             }
-            if (this.numberIterationsComplete >= this.getData().length) {
+            this.checkIterationComplete();
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @private
+         */
+        checkIterationComplete: function() {
+            if (this.iterationCompleted && this.numberIterationsComplete >= this.totalIterationCount) {
                 if (!this.exception) {
                     this.complete();
                 } else {
@@ -134,11 +145,6 @@ require('bugpack').context("*", function(bugpack) {
                 }
             }
         },
-
-
-        //-------------------------------------------------------------------------------
-        // Private Methods
-        //-------------------------------------------------------------------------------
 
         /**
          * @private
@@ -149,7 +155,7 @@ require('bugpack').context("*", function(bugpack) {
             if (!this.exception) {
                 this.exception = new MappedParallelException();
             }
-            this.exception.putCause(args[0], throwable);
+            this.exception.putCause(args, throwable);
         }
     });
 
@@ -158,5 +164,5 @@ require('bugpack').context("*", function(bugpack) {
     // Export
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugflow.ForEachParallel', ForEachParallel);
+    bugpack.export('bugflow.ForInParallel', ForInParallel);
 });

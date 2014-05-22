@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -9,11 +9,13 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugflow.Parallel')
+//@Export('bugflow.IterableSeries')
 
 //@Require('Class')
-//@Require('bugflow.ParallelException')
-//@Require('bugflow.Flow')
+//@Require('IIterable')
+//@Require('bugflow.Iteration')
+//@Require('bugflow.IteratorFlow')
+//@Require('bugtrace.BugTrace')
 
 
 //-------------------------------------------------------------------------------
@@ -26,9 +28,19 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Class               = bugpack.require('Class');
-    var Flow                = bugpack.require('bugflow.Flow');
-    var ParallelException   = bugpack.require('bugflow.ParallelException');
+    var Class           = bugpack.require('Class');
+    var IIterable       = bugpack.require('IIterable');
+    var Iteration       = bugpack.require('bugflow.Iteration');
+    var IteratorFlow    = bugpack.require('bugflow.IteratorFlow');
+    var BugTrace        = bugpack.require('bugtrace.BugTrace');
+
+
+    //-------------------------------------------------------------------------------
+    // Simplify References
+    //-------------------------------------------------------------------------------
+
+    var $error          = BugTrace.$error;
+    var $trace          = BugTrace.$trace;
 
 
     //-------------------------------------------------------------------------------
@@ -37,11 +49,11 @@ require('bugpack').context("*", function(bugpack) {
 
     /**
      * @class
-     * @extends {flow}
+     * @extends {IteratorFlow}
      */
-    var Parallel = Class.extend(Flow, {
+    var IterableSeries = Class.extend(IteratorFlow, {
 
-        _name: "bugflow.Parallel",
+        _name: "bugflow.IterableSeries",
 
 
         //-------------------------------------------------------------------------------
@@ -50,56 +62,69 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {Array.<Flow>} flowArray
+         * @param {IIterable} data
+         * @param {function(Flow, *)} iteratorMethod
          */
-        _constructor: function(flowArray) {
+        _constructor: function(data, iteratorMethod) {
 
-            this._super();
+            this._super(data, iteratorMethod);
 
 
             //-------------------------------------------------------------------------------
             // Private Properties
             //-------------------------------------------------------------------------------
 
-            /**
-             * @private
-             * @type {ParallelException}
-             */
-            this.exception          = null;
+            if (!Class.doesImplement(data, IIterable)) {
+                throw new Error("IterableSeries only supports IIterable instances.");
+            }
 
             /**
              * @private
-             * @type {Array.<Flow>}
+             * @type {IIterator}
              */
-            this.flowArray          = flowArray;
-
-            /**
-             * @private
-             * @type {number}
-             */
-            this.numberComplete     = 0;
+            this.iterator = data.iterator();
         },
 
 
         //-------------------------------------------------------------------------------
-        // Flow Extensions
+        // Flow Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {Array<*>} args
+         */
+        executeFlow: function(args) {
+            if (!this.data) {
+                this.error("data value must be iterable");
+            }
+            if (this.iterator.hasNext()) {
+                this.next();
+            } else {
+                this.complete();
+            }
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // IteratorFlow Methods
         //-------------------------------------------------------------------------------
 
         /**
          * @protected
          * @param {Array.<*>} args
+         * @param {Throwable} throwable
          */
-        executeFlow: function(args) {
-            this._super(args);
-            var _this = this;
-            if (this.flowArray.length > 0) {
-                this.flowArray.forEach(function(flow) {
-                    flow.execute(args, function(error) {
-                        _this.flowCallback(error);
-                    });
-                });
+        iterationCallback: function(args, throwable) {
+            if (throwable) {
+                if (!this.hasErrored()) {
+                    this.error(throwable);
+                }
             } else {
-                this.complete();
+                if (!this.iterator.hasNext()) {
+                    this.complete();
+                } else {
+                    this.next();
+                }
             }
         },
 
@@ -110,36 +135,10 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
-         * @param {Throwable} throwable
          */
-        processThrowable: function(throwable) {
-            if (!this.exception) {
-                this.exception = new ParallelException();
-            }
-            this.exception.addCause(throwable);
-        },
-
-
-        //-------------------------------------------------------------------------------
-        // Event Listeners
-        //-------------------------------------------------------------------------------
-
-        /**
-         * @private
-         * @param {Throwable} throwable
-         */
-        flowCallback: function(throwable) {
-            this.numberComplete++;
-            if (throwable) {
-                this.processThrowable(throwable);
-            }
-            if (this.numberComplete >= this.flowArray.length) {
-                if (!this.exception) {
-                    this.complete();
-                } else {
-                    this.error(this.exception);
-                }
-            }
+        next: function() {
+            var nextValue = this.iterator.next();
+            this.executeIteration([nextValue]);
         }
     });
 
@@ -148,5 +147,5 @@ require('bugpack').context("*", function(bugpack) {
     // Export
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugflow.Parallel', Parallel);
+    bugpack.export('bugflow.IterableSeries', IterableSeries);
 });

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -9,13 +9,11 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugflow.IterableSeries')
+//@Export('bugflow.IteratorFlow')
 
 //@Require('Class')
-//@Require('IIterable')
+//@Require('bugflow.Flow')
 //@Require('bugflow.Iteration')
-//@Require('bugflow.IteratorFlow')
-//@Require('bugtrace.BugTrace')
 
 
 //-------------------------------------------------------------------------------
@@ -29,18 +27,8 @@ require('bugpack').context("*", function(bugpack) {
     //-------------------------------------------------------------------------------
 
     var Class           = bugpack.require('Class');
-    var IIterable       = bugpack.require('IIterable');
+    var Flow            =  bugpack.require('bugflow.Flow');
     var Iteration       = bugpack.require('bugflow.Iteration');
-    var IteratorFlow    = bugpack.require('bugflow.IteratorFlow');
-    var BugTrace        = bugpack.require('bugtrace.BugTrace');
-
-
-    //-------------------------------------------------------------------------------
-    // Simplify References
-    //-------------------------------------------------------------------------------
-
-    var $error          = BugTrace.$error;
-    var $trace          = BugTrace.$trace;
 
 
     //-------------------------------------------------------------------------------
@@ -49,11 +37,11 @@ require('bugpack').context("*", function(bugpack) {
 
     /**
      * @class
-     * @extends {IteratorFlow}
+     * @extends {Flow}
      */
-    var IterableSeries = Class.extend(IteratorFlow, {
+    var IteratorFlow = Class.extend(Flow, {
 
-        _name: "bugflow.IterableSeries",
+        _name: "bugflow.IteratorFlow",
 
 
         //-------------------------------------------------------------------------------
@@ -62,83 +50,81 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {IIterable} data
+         * @param {*} data
          * @param {function(Flow, *)} iteratorMethod
          */
         _constructor: function(data, iteratorMethod) {
 
-            this._super(data, iteratorMethod);
+            this._super();
 
 
             //-------------------------------------------------------------------------------
             // Private Properties
             //-------------------------------------------------------------------------------
 
-            if (!Class.doesImplement(data, IIterable)) {
-                throw new Error("IterableSeries only supports IIterable instances.");
-            }
+            // TODO BRN: Add support for BugJs data objects that implement the IIterate interface
 
             /**
              * @private
-             * @type {IIterator}
+             * @type {*}
              */
-            this.iterator = data.iterator();
+            this.data               = data;
+
+            /**
+             * @private
+             * @type {function(Flow, *)}
+             */
+            this.iteratorMethod     = iteratorMethod;
         },
 
 
         //-------------------------------------------------------------------------------
-        // Flow Methods
+        // Getters and Setters
         //-------------------------------------------------------------------------------
 
         /**
-         * @param {Array<*>} args
+         * @return {*}
          */
-        executeFlow: function(args) {
-            if (!this.data) {
-                this.error("data value must be iterable");
-            }
-            if (this.iterator.hasNext()) {
-                this.next();
-            } else {
-                this.complete();
-            }
+        getData: function() {
+            return this.data;
+        },
+
+        /**
+         * @return {function(Flow, *)}
+         */
+        getIteratorMethod: function() {
+            return this.iteratorMethod;
         },
 
 
         //-------------------------------------------------------------------------------
-        // IteratorFlow Methods
+        // Protected Methods
         //-------------------------------------------------------------------------------
 
         /**
          * @protected
          * @param {Array.<*>} args
-         * @param {Throwable} throwable
          */
-        iterationCallback: function(args, throwable) {
-            if (throwable) {
-                if (!this.hasErrored()) {
-                    this.error(throwable);
-                }
-            } else {
-                if (!this.iterator.hasNext()) {
-                    this.complete();
-                } else {
-                    this.next();
-                }
-            }
+        executeIteration: function(args) {
+            var _this = this;
+            var iteration = new Iteration(this.getIteratorMethod());
+            iteration.execute(args, function(throwable) {
+                _this.iterationCallback(args, throwable);
+            })
         },
 
 
         //-------------------------------------------------------------------------------
-        // Private Methods
+        // Abstract Methods
         //-------------------------------------------------------------------------------
 
         /**
-         * @private
+         * @abstract
+         * @param {Array.<*>} args
+         * @param {Throwable} throwable
          */
-        next: function() {
-            var nextValue = this.iterator.next();
-            this.executeIteration([nextValue]);
+        iterationCallback: function(args, throwable) {
+
         }
     });
 
@@ -147,5 +133,5 @@ require('bugpack').context("*", function(bugpack) {
     // Export
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugflow.IterableSeries', IterableSeries);
+    bugpack.export('bugflow.IteratorFlow', IteratorFlow);
 });

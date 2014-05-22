@@ -1,8 +1,9 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
+
 
 //-------------------------------------------------------------------------------
 // Annotations
@@ -16,6 +17,7 @@
 //@Require('bugflow.ForEachParallel')
 //@Require('bugflow.ForEachSeries')
 //@Require('bugflow.ForInParallel')
+//@Require('bugflow.ForInSeries')
 //@Require('bugflow.If')
 //@Require('bugflow.IfBuilder')
 //@Require('bugflow.IterableParallel')
@@ -43,6 +45,7 @@ require('bugpack').context("*", function(bugpack) {
     var ForEachParallel     = bugpack.require('bugflow.ForEachParallel');
     var ForEachSeries       = bugpack.require('bugflow.ForEachSeries');
     var ForInParallel       = bugpack.require('bugflow.ForInParallel');
+    var ForInSeries         = bugpack.require('bugflow.ForInSeries');
     var If                  = bugpack.require('bugflow.If');
     var IfBuilder           = bugpack.require('bugflow.IfBuilder');
     var IterableParallel    = bugpack.require('bugflow.IterableParallel');
@@ -99,6 +102,16 @@ require('bugpack').context("*", function(bugpack) {
      */
     BugFlow.$forInParallel  = function(data, iteratorMethod) {
         return new FlowBuilder(ForInParallel, [data, iteratorMethod]);
+    };
+
+    /**
+     * @static
+     * @param {Object} data
+     * @param {function(Flow, *, *)} iteratorMethod
+     * @return {FlowBuilder}
+     */
+    BugFlow.$forInSeries    = function(data, iteratorMethod) {
+        return new FlowBuilder(ForInSeries, [data, iteratorMethod]);
     };
 
     /**

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -12,7 +12,7 @@
 //@TestFile
 
 //@Require('Class')
-//@Require('bugflow.Flow')
+//@Require('bugflow.BugFlow')
 //@Require('bugmeta.BugMeta')
 //@Require('bugunit.TestAnnotation')
 
@@ -28,7 +28,7 @@ require('bugpack').context("*", function(bugpack) {
     //-------------------------------------------------------------------------------
 
     var Class               = bugpack.require('Class');
-    var Flow                = bugpack.require('bugflow.Flow');
+    var BugFlow             = bugpack.require('bugflow.BugFlow');
     var BugMeta             = bugpack.require('bugmeta.BugMeta');
     var TestAnnotation      = bugpack.require('bugunit.TestAnnotation');
 
@@ -47,15 +47,32 @@ require('bugpack').context("*", function(bugpack) {
 
     /**
      * This tests..
-     * 1) That the Flow is marked as executed after execute is called
+     * 1) That the while parallel completes
      */
-    var bugflowExecuteFlowTest = {
+    var bugflowExecuteWhileParallelTest = {
+
+        async: true,
+
 
         // Setup Test
         //-------------------------------------------------------------------------------
 
         setup: function(test) {
-            this.flow = new Flow();
+            var _this = this;
+            this.testIndex = 0;
+            this.numberTestTaskRuns = 0;
+            this.testWhileMethod = function(flow) {
+                flow.assert(_this.testIndex < 2);
+            };
+            this.testTask = BugFlow.$task(function(flow) {
+                _this.testIndex++;
+                setTimeout(function() {
+                    _this.numberTestTaskRuns++;
+                    flow.complete();
+                }, 0);
+            });
+            this.whileParallel = BugFlow.$whileParallel(this.testWhileMethod, this.testTask);
+            test.completeSetup();
         },
 
 
@@ -63,9 +80,22 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         test: function(test) {
-            this.flow.execute();
-            test.assertEqual(this.flow.hasExecuted(), true,
-                "Assert flow has executed");
+            var _this = this;
+            var executeCallbackFired = false;
+            this.whileParallel.execute(function(throwable) {
+                test.assertFalse(executeCallbackFired,
+                    "Assert that the execute callback has not already fired");
+                executeCallbackFired = true;
+                test.assertEqual(_this.numberTestTaskRuns, 2,
+                    "Assert testTask was run twice");
+                if (!throwable) {
+                    test.assertEqual(_this.testIndex, 2,
+                        "Assert that the ForEachParallel iterated 2 times");
+                } else {
+                    test.error(throwable);
+                }
+                test.completeTest();
+            });
         }
     };
 
@@ -74,7 +104,7 @@ require('bugpack').context("*", function(bugpack) {
     // BugMeta
     //-------------------------------------------------------------------------------
 
-    bugmeta.annotate(bugflowExecuteFlowTest).with(
-        test().name("BugFlow Flow execute without extension test")
+    bugmeta.annotate(bugflowExecuteWhileParallelTest).with(
+        test().name("BugFlow WhileParallel - execute test")
     );
 });

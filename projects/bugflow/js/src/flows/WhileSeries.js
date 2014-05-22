@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2014 airbug inc. http://airbug.com
  *
- * bugcore may be freely distributed under the MIT license.
+ * bugflow may be freely distributed under the MIT license.
  */
 
 
@@ -9,13 +9,12 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugflow.WhileParallel')
+//@Export('bugflow.WhileSeries')
 
 //@Require('Bug')
 //@Require('Class')
 //@Require('List')
 //@Require('bugflow.Flow')
-//@Require('bugflow.ParallelException')
 
 
 //-------------------------------------------------------------------------------
@@ -32,7 +31,6 @@ require('bugpack').context("*", function(bugpack) {
     var Class               = bugpack.require('Class');
     var List                = bugpack.require('List');
     var Flow                = bugpack.require('bugflow.Flow');
-    var ParallelException   = bugpack.require('bugflow.ParallelException');
 
 
     //-------------------------------------------------------------------------------
@@ -41,11 +39,11 @@ require('bugpack').context("*", function(bugpack) {
 
     /**
      * @class
-     * @extends {flow}
+     * @extends {Flow}
      */
-    var WhileParallel = Class.extend(Flow, {
+    var WhileSeries = Class.extend(Flow, {
 
-        _name: "bugflow.WhileParallel",
+        _name: "bugflow.WhileSeries",
 
 
         //-------------------------------------------------------------------------------
@@ -65,30 +63,6 @@ require('bugpack').context("*", function(bugpack) {
             //-------------------------------------------------------------------------------
             // Private Properties
             //-------------------------------------------------------------------------------
-
-            /**
-             * @private
-             * @type {boolean}
-             */
-            this.whileCheck             = true;
-
-            /**
-             * @private
-             * @type {ParallelException}
-             */
-            this.exception              = null;
-
-            /**
-             * @private
-             * @type {number}
-             */
-            this.numberFlowsCompleted   = 0;
-
-            /**
-             * @private
-             * @type {number}
-             */
-            this.numberFlowsExecuted    = 0;
 
             /**
              * @private
@@ -151,39 +125,12 @@ require('bugpack').context("*", function(bugpack) {
         /**
          * @private
          */
-        doCheckComplete: function() {
-            if (!this.whileCheck) {
-                if (this.numberFlowsCompleted === this.numberFlowsExecuted) {
-                    if (this.exception) {
-                        this.error(this.exception);
-                    } else {
-                        this.complete();
-                    }
-                }
-            }
-        },
-
-        /**
-         * @private
-         * @param {Throwable} throwable
-         */
-        processThrowable: function(throwable) {
-            if (!this.exception) {
-                this.exception = new ParallelException();
-            }
-            this.exception.addCause(throwable);
-        },
-
-        /**
-         * @private
-         */
         runWhileCheck: function() {
             this.runningWhileCheck = true;
             try {
                 this.whileMethod.apply(null, ([this]).concat(this.execArgs));
             } catch(throwable) {
-                this.processThrowable(throwable);
-                this.whileCheckFailed();
+                this.error(throwable);
             }
         },
 
@@ -192,13 +139,12 @@ require('bugpack').context("*", function(bugpack) {
          */
         runWhileFlow: function() {
             var _this = this;
-            this.numberFlowsExecuted++;
             this.whileFlow.execute(this.execArgs, function(throwable) {
-                _this.numberFlowsCompleted++;
-                if (throwable) {
-                    _this.processThrowable(throwable);
+                if (!throwable) {
+                    _this.runWhileCheck();
+                } else {
+                    _this.error(throwable);
                 }
-                _this.doCheckComplete();
             });
         },
 
@@ -207,8 +153,7 @@ require('bugpack').context("*", function(bugpack) {
          */
         whileCheckFailed: function() {
             this.runningWhileCheck = false;
-            this.whileCheck = false;
-            this.doCheckComplete();
+            this.complete();
         },
 
         /**
@@ -217,7 +162,6 @@ require('bugpack').context("*", function(bugpack) {
         whileCheckSuccess: function() {
             this.runningWhileCheck = false;
             this.runWhileFlow();
-            this.runWhileCheck();
         }
     });
 
@@ -226,5 +170,5 @@ require('bugpack').context("*", function(bugpack) {
     // Export
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugflow.WhileParallel', WhileParallel);
+    bugpack.export('bugflow.WhileSeries', WhileSeries);
 });
