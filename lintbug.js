@@ -49,7 +49,16 @@ var getCopyright = function() {
     if (copyright === null) {
         var copyrightText   = bugcore.StringUtil.trim(bugfs.readFileSync(__dirname + "/COPYRIGHT", 'utf8'));
         var copyrightLines  = copyrightText.split("\n");
-        copyright = "/*\n * " + copyrightLines.join("\n * ") + "\n */\n";
+        copyright = "/*\n";
+        copyrightLines.forEach(function(copyrightLine) {
+            copyrightLine = bugcore.StringUtil.trim(copyrightLine);
+            if (copyrightLine !== "") {
+                copyright += " * " + copyrightLine + "\n";
+            } else {
+                copyright += " *\n";
+            }
+        });
+        copyright += " */\n";
     }
     return copyright;
 };
