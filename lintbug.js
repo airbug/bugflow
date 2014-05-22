@@ -47,7 +47,7 @@ lintbug.lintTask("updateCopyright", function(lintFile, callback) {
 var copyright = null;
 var getCopyright = function() {
     if (copyright === null) {
-        var copyrightText   = bugfs.readFileSync(__dirname + "/COPYRIGHT", 'utf8');
+        var copyrightText   = bugcore.StringUtil.trim(bugfs.readFileSync(__dirname + "/COPYRIGHT", 'utf8'));
         var copyrightLines  = copyrightText.split("\n");
         copyright = "/*\n * " + copyrightLines.join("\n * ") + "\n */\n";
     }
