@@ -131,7 +131,7 @@ require('bugpack').context("*", function(bugpack) {
             this.iteratorIndex++;
             var nextProperty    = this.dataProperties[this.iteratorIndex];
             var nextValue       = this.getData()[nextProperty];
-            this.executeIteration([nextValue, nextProperty]);
+            this.executeIteration([nextProperty, nextValue]);
         }
     });
 
