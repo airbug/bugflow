@@ -14,7 +14,7 @@
 //@Require('Class')
 //@Require('bugflow.Task')
 //@Require('bugmeta.BugMeta')
-//@Require('bugunit.TestAnnotation')
+//@Require('bugunit.TestTag')
 
 
 //-------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ require('bugpack').context("*", function(bugpack) {
     var Class           = bugpack.require('Class');
     var Task            = bugpack.require('bugflow.Task');
     var BugMeta         = bugpack.require('bugmeta.BugMeta');
-    var TestAnnotation  = bugpack.require('bugunit.TestAnnotation');
+    var TestTag  = bugpack.require('bugunit.TestTag');
 
 
     //-------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ require('bugpack').context("*", function(bugpack) {
     //-------------------------------------------------------------------------------
 
     var bugmeta         = BugMeta.context();
-    var test            = TestAnnotation.test;
+    var test            = TestTag.test;
 
 
     //-------------------------------------------------------------------------------
@@ -126,10 +126,10 @@ require('bugpack').context("*", function(bugpack) {
     // BugMeta
     //-------------------------------------------------------------------------------
 
-    bugmeta.annotate(bugflowTaskExecuteTaskTest).with(
+    bugmeta.tag(bugflowTaskExecuteTaskTest).with(
         test().name("BugFlow task execute test")
     );
-    bugmeta.annotate(bugflowTaskExecuteTaskWithoutCallbackTest).with(
+    bugmeta.tag(bugflowTaskExecuteTaskWithoutCallbackTest).with(
         test().name("BugFlow task execute without callback test")
     );
 });
