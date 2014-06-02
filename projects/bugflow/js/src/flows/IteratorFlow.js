@@ -26,9 +26,9 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Class           = bugpack.require('Class');
-    var Flow            =  bugpack.require('bugflow.Flow');
-    var Iteration       = bugpack.require('bugflow.Iteration');
+    var Class       = bugpack.require('Class');
+    var Flow        = bugpack.require('bugflow.Flow');
+    var Iteration   = bugpack.require('bugflow.Iteration');
 
 
     //-------------------------------------------------------------------------------

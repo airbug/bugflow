@@ -32,15 +32,15 @@ require('bugpack').context("*", function(bugpack) {
     var List            = bugpack.require('List');
     var IterableSeries  = bugpack.require('bugflow.IterableSeries');
     var BugMeta         = bugpack.require('bugmeta.BugMeta');
-    var TestTag  = bugpack.require('bugunit.TestTag');
+    var TestTag         = bugpack.require('bugunit.TestTag');
 
 
     //-------------------------------------------------------------------------------
     // Simplify References
     //-------------------------------------------------------------------------------
 
-    var bugmeta = BugMeta.context();
-    var test = TestTag.test;
+    var bugmeta         = BugMeta.context();
+    var test            = TestTag.test;
 
 
     //-------------------------------------------------------------------------------

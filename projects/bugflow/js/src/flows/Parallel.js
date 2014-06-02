@@ -12,8 +12,8 @@
 //@Export('bugflow.Parallel')
 
 //@Require('Class')
-//@Require('bugflow.ParallelException')
 //@Require('bugflow.Flow')
+//@Require('bugflow.ParallelException')
 
 
 //-------------------------------------------------------------------------------
